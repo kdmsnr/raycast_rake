@@ -1,11 +1,4 @@
-import {
-  Action,
-  ActionPanel,
-  Form,
-  List,
-  Toast,
-  showToast,
-} from "@raycast/api";
+import { Action, ActionPanel, Form, Keyboard, List, Toast, showToast } from "@raycast/api";
 import { execFile } from "node:child_process";
 import { homedir } from "node:os";
 import { promisify } from "node:util";
@@ -58,20 +51,12 @@ function TaskForm({ task }: { task: RakeTask }) {
       navigationTitle={`rake ${task.name}`}
       actions={
         <ActionPanel>
-          <Action.SubmitForm
-            title="Run Rake Task"
-            onSubmit={submit}
-          />
+          <Action.SubmitForm title="Run Rake Task" onSubmit={submit} />
         </ActionPanel>
       }
     >
       {task.args.map((arg) => (
-        <Form.TextField
-          key={arg}
-          id={arg}
-          title={arg}
-          placeholder={arg}
-        />
+        <Form.TextField key={arg} id={arg} title={arg} placeholder={arg} />
       ))}
     </Form>
   );
@@ -94,9 +79,7 @@ export default function Command() {
       const tasks = stdout
         .split("\n")
         .map((line): RakeTask | null => {
-          const match = line.match(
-            /^rake\s+([^\s\[]+)(?:\[([^\]]*)\])?(?:\s+#\s*(.*))?$/,
-          );
+          const match = line.match(/^rake\s+([^\s[]+)(?:\[([^\]]*)\])?(?:\s+#\s*(.*))?$/);
 
           if (!match) {
             return null;
@@ -104,9 +87,7 @@ export default function Command() {
 
           return {
             name: match[1],
-            args: match[2]
-              ? match[2].split(",").map((arg) => arg.trim())
-              : [],
+            args: match[2] ? match[2].split(",").map((arg) => arg.trim()) : [],
             description: match[3] ?? "",
           };
         })
@@ -125,39 +106,22 @@ export default function Command() {
   }
 
   return (
-    <List
-      isLoading={isLoading}
-      searchBarPlaceholder="Search rake tasks..."
-    >
+    <List isLoading={isLoading} searchBarPlaceholder="Search rake tasks...">
       {tasks.map((task) => (
         <List.Item
           key={`${task.name}[${task.args.join(",")}]`}
           title={task.name}
           subtitle={task.description}
-          accessories={
-            task.args.length > 0
-              ? [{ text: `[${task.args.join(", ")}]` }]
-              : []
-          }
+          accessories={task.args.length > 0 ? [{ text: `[${task.args.join(", ")}]` }] : []}
           actions={
             <ActionPanel>
               {task.args.length > 0 ? (
-                <Action.Push
-                  title="Enter Arguments"
-                  target={<TaskForm task={task} />}
-                />
+                <Action.Push title="Enter Arguments" target={<TaskForm task={task} />} />
               ) : (
-                <Action
-                  title="Run Rake Task"
-                  onAction={() => runTask(task.name)}
-                />
+                <Action title="Run Rake Task" onAction={() => runTask(task.name)} />
               )}
 
-              <Action
-                title="Reload Tasks"
-                shortcut={{ modifiers: ["cmd"], key: "r" }}
-                onAction={loadTasks}
-              />
+              <Action title="Reload Tasks" shortcut={Keyboard.Shortcut.Common.Refresh} onAction={loadTasks} />
             </ActionPanel>
           }
         />

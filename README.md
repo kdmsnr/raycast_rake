@@ -1,66 +1,103 @@
-# Rake for Raycast
+# Rake
 
-RaycastからRakeタスクを検索して実行するmacOS向けExtensionです。
-ホームディレクトリで実行した `rake -T` の結果を一覧表示し、引数のあるタスクには入力フォームを表示します。
+Search and run Rake tasks from Raycast on macOS.
+The extension lists the tasks returned by `rake -T` in your home directory and provides a form for tasks that accept arguments.
 
-## 必要な環境
+[日本語](README.ja.md)
 
-- macOS版Raycast
-- Node.jsとnpm
-- RubyとRake
-- ホームディレクトリで `rake -T` を実行して取得できるタスク
+## Requirements and Setup
 
-タスクの取得と実行では、シェルを起動せずに `rake` を直接呼び出します。
-Raycastの実行環境の `PATH` から、使用するRubyとRakeを見つけられる必要があります。
-シェルの設定ファイルは読み込まないため、ターミナルとは実行環境が異なる場合があります。
+- Raycast for macOS.
+- Ruby and Rake available in the `PATH` inherited by Raycast.
+- Tasks listed by `rake -T` when run from your home directory.
 
-ホームディレクトリでのタスク一覧は、ターミナルで次のコマンドを実行して確認できます。
+For example, add a task with a description to `~/Rakefile`:
+
+```ruby
+desc "Greet someone"
+task :greet, [:name] do |_, args|
+  puts "Hello, #{args[:name] || 'world'}!"
+end
+```
+
+Confirm that Rake can list the task in your terminal:
 
 ```sh
 cd ~
 rake -T
 ```
 
-## インストール
+The extension invokes `rake` directly without starting a shell or loading shell configuration files.
+If Ruby or Rake is available only through shell initialization, such as a Ruby version manager, the extension may not find it even if it works in your terminal.
+Ensure that Raycast's `PATH` includes the executable directories required by your Ruby installation.
 
-リポジトリを取得して依存パッケージをインストールし、Extensionをビルドします。
+## Usage
+
+1. Open **Run Rake Task** in Raycast and search for a task.
+2. Select a task without arguments and press Enter to run it.
+3. For a task with arguments, press Enter to open the form, enter the values, and submit **Run Rake Task**.
+
+A toast shows progress and whether the task succeeded or failed.
+On success, the toast displays standard output, falling back to standard error or `Done` if no output is available.
+
+Use **Reload Tasks** or `⌘R` from a task's action panel after changing your tasks.
+If the task list is empty, reopen the command to reload it.
+
+## Limitations
+
+- All tasks run from your home directory. Selecting a project directory is not supported.
+- Only tasks included in `rake -T` are listed. Add `desc` to tasks that should appear.
+- Argument values containing commas are not supported because arguments are passed in Rake's comma-separated task syntax.
+- Tasks run in the background with captured output. Interactive terminal input is not supported.
+
+## Local Installation and Development
+
+Development requires Node.js 22.22.2 or later and npm.
+Store users do not need to install Node.js or npm separately.
 
 ```sh
 git clone https://github.com/kdmsnr/raycast_rake.git
 cd raycast_rake
-npm install
+npm ci
 npm run build
 ```
 
-1. Raycastで `Import Extension` コマンドを開きます。
-2. 取得した `raycast_rake` ディレクトリ（`package.json` があるディレクトリ）を指定します。
-3. インポート後、Raycastで `rake` コマンドを開きます。
-
-## 使い方
-
-1. Raycastで `rake` コマンドを開き、タスクを検索します。
-2. 引数のないタスクは、選択してEnterを押すと実行します。
-3. 引数のあるタスクは、Enterでフォームを開き、値を入力して「Run Rake Task」で実行します。
-
-実行中の状態と成功または失敗をトーストで表示します。
-成功時には標準出力を表示し、標準出力が空なら標準エラー出力、それも空なら `Done` を表示します。
-
-タスクを変更したら、一覧の「Reload Tasks」または `⌘R` で再読み込みできます。
-一覧が空の場合は、Raycastの `rake` コマンドを開き直してください。
-
-すべてのタスクはホームディレクトリで実行します。
-プロジェクトのディレクトリを選択する機能はありません。
-引数はタスクの定義順にカンマで連結して渡すため、値にカンマを含む引数には対応していません。
-
-## 開発
+Open **Import Extension** in Raycast and select the cloned directory containing `package.json`.
+Then open **Run Rake Task**.
 
 ```sh
-npm run dev   # 開発モードで起動
-npm run build # Extensionをビルド
+npm run dev      # Start Raycast development mode
+npm run build    # Compile and type-check into dist/
+npm run lint     # Validate the manifest, icon, source code, and formatting
+npm run fix-lint # Fix supported lint and formatting issues
 ```
 
-コマンドの実装は `src/rake.tsx`、Extensionの定義は `package.json` にあります。
+The build command writes to `dist/` without opening or refreshing Raycast.
+The command implementation is in `src/rake.tsx`, and the extension manifest is in `package.json`.
 
-## ライセンス
+## Publishing
+
+Before submitting, confirm that the manifest's `author` matches your Raycast username, update `CHANGELOG.md`, and add Store screenshots to `metadata/`.
+Screenshots must be 2000 × 1250 PNGs; Raycast recommends at least three.
+Capture them manually using Raycast's Window Capture with **Save to Metadata** enabled.
+
+```sh
+CI=true npm run lint
+npm run build
+```
+
+Commit the prepared changes, then submit the extension:
+
+```sh
+npm run publish
+```
+
+The publish command authenticates with GitHub and opens a pull request in `raycast/extensions`.
+The manifest's `name` is `rake`, so a new submission is placed in `extensions/rake/` regardless of the local checkout's directory name.
+After review and merge, the extension becomes available in the Store.
+
+See Raycast's [publishing guide](https://developers.raycast.com/basics/publish-an-extension) and [Store preparation guidelines](https://developers.raycast.com/basics/prepare-an-extension-for-store).
+
+## License
 
 [MIT](LICENSE)
