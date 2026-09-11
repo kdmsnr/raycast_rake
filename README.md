@@ -23,12 +23,13 @@ rake -T
 
 ## インストール
 
-リポジトリを取得して依存パッケージをインストールします。
+リポジトリを取得して依存パッケージをインストールし、Extensionをビルドします。
 
 ```sh
 git clone https://github.com/kdmsnr/raycast_rake.git
 cd raycast_rake
 npm install
+npm run build
 ```
 
 1. Raycastで `Import Extension` コマンドを開きます。
@@ -62,4 +63,4 @@ npm run build # Extensionをビルド
 
 ## ライセンス
 
-MIT
+[MIT](LICENSE)
