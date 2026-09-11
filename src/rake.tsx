@@ -19,19 +19,11 @@ type RakeTask = {
   description: string;
 };
 
-function shellescape(value: string) {
-  return `'${value.replace(/'/g, `'\\''`)}'`;
-}
-
 async function rake(...args: string[]) {
-  return execFileAsync(
-    "/bin/zsh",
-    ["-l", "-c", `rake ${args.map(shellescape).join(" ")}`],
-    {
-      cwd: homedir(),
-      encoding: "utf8",
-    },
-  );
+  return execFileAsync("rake", args, {
+    cwd: homedir(),
+    encoding: "utf8",
+  });
 }
 
 async function runTask(invocation: string) {
