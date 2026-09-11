@@ -1,6 +1,7 @@
 import {
   Action,
   ActionPanel,
+  Form,
   List,
   Toast,
   showToast,
@@ -14,8 +15,13 @@ const execFileAsync = promisify(execFile);
 
 type RakeTask = {
   name: string;
+  args: string[];
   description: string;
 };
+
+function shellescape(value: string) {
+  return `'${value.replace(/'/g, `'\\''`)}'`;
+}
 
 async function rake(...args: string[]) {
   return execFileAsync(
@@ -28,8 +34,55 @@ async function rake(...args: string[]) {
   );
 }
 
-function shellescape(s: string) {
-  return `'${s.replace(/'/g, `'\\''`)}'`;
+async function runTask(invocation: string) {
+  const toast = await showToast({
+    style: Toast.Style.Animated,
+    title: `rake ${invocation}`,
+  });
+
+  try {
+    const { stdout, stderr } = await rake(invocation);
+
+    toast.style = Toast.Style.Success;
+    toast.title = `rake ${invocation}`;
+    toast.message = stdout.trim() || stderr.trim() || "Done";
+  } catch (error) {
+    toast.style = Toast.Style.Failure;
+    toast.title = `rake ${invocation} failed`;
+    toast.message = String(error);
+  }
+}
+
+function TaskForm({ task }: { task: RakeTask }) {
+  async function submit(values: Record<string, string>) {
+    const args = task.args.map((name) => values[name] ?? "");
+    const invocation = `${task.name}[${args.join(",")}]`;
+
+    await runTask(invocation);
+  }
+
+  return (
+    <Form
+      navigationTitle={`rake ${task.name}`}
+      actions={
+        <ActionPanel>
+          <Action.SubmitForm
+            title="Run Rake Task"
+            onSubmit={submit}
+          />
+        </ActionPanel>
+      }
+    >
+      {task.args.map((arg) => (
+        <Form.TextField
+          key={arg}
+          id={arg}
+          title={arg}
+          placeholder={arg}
+        />
+      ))}
+    </Form>
+  );
 }
 
 export default function Command() {
@@ -49,7 +102,9 @@ export default function Command() {
       const tasks = stdout
         .split("\n")
         .map((line): RakeTask | null => {
-          const match = line.match(/^rake\s+(\S+)(?:\s+#\s*(.*))?$/);
+          const match = line.match(
+            /^rake\s+([^\s\[]+)(?:\[([^\]]*)\])?(?:\s+#\s*(.*))?$/,
+          );
 
           if (!match) {
             return null;
@@ -57,7 +112,10 @@ export default function Command() {
 
           return {
             name: match[1],
-            description: match[2] ?? "",
+            args: match[2]
+              ? match[2].split(",").map((arg) => arg.trim())
+              : [],
+            description: match[3] ?? "",
           };
         })
         .filter((task): task is RakeTask => task !== null);
@@ -74,25 +132,6 @@ export default function Command() {
     }
   }
 
-  async function runTask(task: RakeTask) {
-    const toast = await showToast({
-      style: Toast.Style.Animated,
-      title: `rake ${task.name}`,
-    });
-
-    try {
-      const { stdout, stderr } = await rake(task.name);
-
-      toast.style = Toast.Style.Success;
-      toast.title = `rake ${task.name}`;
-      toast.message = stdout.trim() || stderr.trim() || "Done";
-    } catch (error) {
-      toast.style = Toast.Style.Failure;
-      toast.title = `rake ${task.name} failed`;
-      toast.message = String(error);
-    }
-  }
-
   return (
     <List
       isLoading={isLoading}
@@ -100,15 +139,28 @@ export default function Command() {
     >
       {tasks.map((task) => (
         <List.Item
-          key={task.name}
+          key={`${task.name}[${task.args.join(",")}]`}
           title={task.name}
           subtitle={task.description}
+          accessories={
+            task.args.length > 0
+              ? [{ text: `[${task.args.join(", ")}]` }]
+              : []
+          }
           actions={
             <ActionPanel>
-              <Action
-                title="Run Rake Task"
-                onAction={() => runTask(task)}
-              />
+              {task.args.length > 0 ? (
+                <Action.Push
+                  title="Enter Arguments"
+                  target={<TaskForm task={task} />}
+                />
+              ) : (
+                <Action
+                  title="Run Rake Task"
+                  onAction={() => runTask(task.name)}
+                />
+              )}
+
               <Action
                 title="Reload Tasks"
                 shortcut={{ modifiers: ["cmd"], key: "r" }}
